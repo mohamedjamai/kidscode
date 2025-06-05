@@ -92,31 +92,86 @@ export default function SubmissionsPage() {
   const submitReview = async () => {
     if (!selectedSubmission) return;
 
+    console.log(`📝 Attempting to review submission ${selectedSubmission.id}`);
+    console.log('Review data:', { ...reviewForm, grade: parseInt(reviewForm.grade) || null });
+
     try {
+      const reviewData = {
+        grade: reviewForm.grade ? parseInt(reviewForm.grade) : null,
+        feedback: reviewForm.feedback || '',
+        reviewed_by: reviewForm.reviewed_by || 'Teacher'
+      };
+
+      console.log(`📤 Sending review for submission ${selectedSubmission.id}:`, reviewData);
+
       const response = await fetch(`/api/submissions/${selectedSubmission.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...reviewForm,
-          grade: parseInt(reviewForm.grade) || null
-        }),
+        body: JSON.stringify(reviewData),
       });
 
       const data = await response.json();
+      console.log('📊 Review response:', data);
 
       if (data.success) {
-        // Refresh submissions
+        console.log(`✅ Review saved successfully for submission ${selectedSubmission.id}`);
+        
+        // Refresh submissions to show updated data
         await fetchSubmissions();
         setIsReviewing(false);
         setSelectedSubmission(null);
+        
+        // Show success message
+        setError(null);
+        setDebugInfo(`✅ Review saved successfully at ${new Date().toLocaleTimeString()}`);
       } else {
-        setError(data.message || 'Failed to save review');
+        console.error('❌ Review failed:', data.message);
+        setError(`Failed to save review: ${data.message}`);
       }
     } catch (err) {
-      setError('Failed to save review');
-      console.error('Error saving review:', err);
+      console.error('❌ Review submission error:', err);
+      setError('Network error while saving review. Please try again.');
+    }
+  };
+
+  const testReviewAPI = async () => {
+    if (submissions.length === 0) {
+      setError('No submissions available to test');
+      return;
+    }
+
+    const testSubmission = submissions[0];
+    console.log(`🧪 Testing review API with submission ${testSubmission.id}`);
+
+    try {
+      const testReviewData = {
+        grade: 85,
+        feedback: 'Test review - good work!',
+        reviewed_by: 'Test Teacher'
+      };
+
+      const response = await fetch(`/api/submissions/${testSubmission.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(testReviewData),
+      });
+
+      const data = await response.json();
+      console.log('🧪 Test review response:', data);
+
+      if (data.success) {
+        setDebugInfo(`✅ Test review successful at ${new Date().toLocaleTimeString()}`);
+        await fetchSubmissions(); // Refresh to see changes
+      } else {
+        setError(`Test review failed: ${data.message}`);
+      }
+    } catch (error) {
+      console.error('🧪 Test review error:', error);
+      setError(`Test review error: ${error}`);
     }
   };
 
@@ -180,13 +235,22 @@ export default function SubmissionsPage() {
               <p className="text-gray-600">Review and grade student work</p>
             </div>
             <div className="text-right">
-              <button
-                onClick={fetchSubmissions}
-                className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2"
-              >
-                <span>🔄</span>
-                <span>Refresh</span>
-              </button>
+              <div className="flex space-x-2">
+                <button
+                  onClick={testReviewAPI}
+                  className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-2"
+                >
+                  <span>🧪</span>
+                  <span>Test Review</span>
+                </button>
+                <button
+                  onClick={fetchSubmissions}
+                  className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2"
+                >
+                  <span>🔄</span>
+                  <span>Refresh</span>
+                </button>
+              </div>
               <p className="text-xs text-gray-500 mt-1">
                 Last updated: {lastRefresh.toLocaleTimeString()}
               </p>

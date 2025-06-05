@@ -18,16 +18,62 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  console.log('📝 PUT submission review API called');
+  
   try {
     const { id } = await params;
     const body = await request.json();
     const { grade, feedback, reviewed_by } = body;
 
+    console.log(`📊 Reviewing submission ${id}: Grade=${grade}, Feedback="${feedback}", Reviewer="${reviewed_by}"`);
+
+    // Validate ID
+    if (!id || isNaN(parseInt(id))) {
+      console.error('❌ Invalid submission ID:', id);
+      return NextResponse.json(
+        { success: false, message: 'Invalid submission ID' },
+        { status: 400 }
+      );
+    }
+
     try {
       const connection = await createConnection();
 
+      // First check if submission exists
+      const [existingRows] = await connection.execute(
+        'SELECT id FROM submissions WHERE id = ?',
+        [id]
+      );
+
+      if ((existingRows as any[]).length === 0) {
+        console.log(`❌ Submission ${id} not found in database`);
+        await connection.end();
+        
+        // Try updating mock store instead
+        const success = mockStore.updateSubmission(parseInt(id), {
+          grade: grade ? parseInt(grade) : null,
+          feedback: feedback || null,
+          reviewed_by: reviewed_by || null,
+          reviewed_at: new Date().toISOString()
+        });
+        
+        if (success) {
+          console.log(`✅ Mock store updated for submission ${id}`);
+          return NextResponse.json({
+            success: true,
+            message: 'Submission reviewed successfully (demo mode)'
+          });
+        } else {
+          console.error(`❌ Submission ${id} not found in mock store either`);
+          return NextResponse.json(
+            { success: false, message: 'Submission not found' },
+            { status: 404 }
+          );
+        }
+      }
+
       // Update submission with review data
-      await connection.execute(
+      const [updateResult] = await connection.execute(
         `UPDATE submissions 
          SET grade = ?, feedback = ?, reviewed_by = ?, reviewed_at = NOW()
          WHERE id = ?`,
@@ -35,6 +81,8 @@ export async function PUT(
       );
 
       await connection.end();
+      
+      console.log(`✅ Database updated for submission ${id}`);
 
       return NextResponse.json({
         success: true,
@@ -42,7 +90,7 @@ export async function PUT(
       });
 
     } catch (dbError) {
-      console.error('Database error:', dbError);
+      console.error('❌ Database error, using mock store:', dbError);
       
       // Update mock store if database is not available
       const success = mockStore.updateSubmission(parseInt(id), {
@@ -53,12 +101,13 @@ export async function PUT(
       });
       
       if (success) {
-        console.log(`Mock review saved for submission ${id}: Grade ${grade}, Feedback: ${feedback}`);
+        console.log(`✅ Mock store updated for submission ${id}: Grade ${grade}, Feedback: ${feedback}`);
         return NextResponse.json({
           success: true,
           message: 'Submission reviewed successfully (demo mode)'
         });
       } else {
+        console.error(`❌ Submission ${id} not found in mock store`);
         return NextResponse.json(
           { success: false, message: 'Submission not found' },
           { status: 404 }
@@ -67,7 +116,7 @@ export async function PUT(
     }
 
   } catch (error) {
-    console.error('API error:', error);
+    console.error('❌ API error:', error);
     return NextResponse.json(
       { success: false, message: 'Failed to update submission' },
       { status: 500 }
@@ -80,8 +129,20 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  console.log('📥 GET single submission API called');
+  
   try {
     const { id } = await params;
+    console.log(`📊 Fetching submission ${id}`);
+    
+    // Validate ID
+    if (!id || isNaN(parseInt(id))) {
+      console.error('❌ Invalid submission ID:', id);
+      return NextResponse.json(
+        { success: false, message: 'Invalid submission ID' },
+        { status: 400 }
+      );
+    }
     
     try {
       const connection = await createConnection();
@@ -100,28 +161,44 @@ export async function GET(
       await connection.end();
 
       if ((rows as any[]).length === 0) {
-        return NextResponse.json(
-          { success: false, message: 'Submission not found' },
-          { status: 404 }
-        );
+        console.log(`❌ Submission ${id} not found in database, trying mock store`);
+        
+        // Try to get from mock store
+        const submission = mockStore.getSubmissionById(parseInt(id));
+        if (submission) {
+          console.log(`✅ Found submission ${id} in mock store`);
+          return NextResponse.json({
+            success: true,
+            submission: submission
+          });
+        } else {
+          console.error(`❌ Submission ${id} not found anywhere`);
+          return NextResponse.json(
+            { success: false, message: 'Submission not found' },
+            { status: 404 }
+          );
+        }
       }
 
+      console.log(`✅ Found submission ${id} in database`);
       return NextResponse.json({
         success: true,
         submission: (rows as any[])[0]
       });
       
     } catch (dbError) {
-      console.error('Database error:', dbError);
+      console.error('❌ Database error, using mock store:', dbError);
       
       // Try to get from mock store
       const submission = mockStore.getSubmissionById(parseInt(id));
       if (submission) {
+        console.log(`✅ Found submission ${id} in mock store`);
         return NextResponse.json({
           success: true,
           submission: submission
         });
       } else {
+        console.error(`❌ Submission ${id} not found in mock store`);
         return NextResponse.json(
           { success: false, message: 'Submission not found' },
           { status: 404 }
@@ -130,7 +207,7 @@ export async function GET(
     }
 
   } catch (error) {
-    console.error('API error:', error);
+    console.error('❌ API error:', error);
     return NextResponse.json(
       { success: false, message: 'Failed to fetch submission' },
       { status: 500 }
