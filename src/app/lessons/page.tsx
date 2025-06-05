@@ -269,7 +269,7 @@ export default function LessonsPage() {
               {filteredLessons.map((lesson) => (
                 <Link
                   key={lesson.id}
-                  href={`/lesson/${lesson.id}`}
+                  href={`/student/lesson/${lesson.id}`}
                   className="block group"
                 >
                   <div className="flex items-center p-6 border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-lg transition-all">

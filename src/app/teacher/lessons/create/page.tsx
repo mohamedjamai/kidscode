@@ -111,11 +111,8 @@ export default function CreateLessonPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
+        {/* Page Header */}
         <div className="mb-8">
-          <Link href="/" className="text-blue-600 hover:text-blue-800 font-medium mb-4 inline-block">
-            ← Back to Home
-          </Link>
           <h1 className="text-4xl font-bold text-gray-800 mb-2">Create New Lesson</h1>
           <p className="text-gray-600 text-lg">Design an exciting coding adventure for kids! 🚀</p>
         </div>

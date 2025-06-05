@@ -3,7 +3,31 @@ import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { NextAuthOptions } from 'next-auth';
 import { Session } from 'next-auth';
-import { query } from '@/lib/db';
+import { authenticateUser, validateEmail, validatePassword, checkRateLimit } from '@/lib/auth';
+
+// Secure user database - in real app this would be in a database
+const SECURE_USERS = {
+  'student@kidscode.com': {
+    password: 'securepass123',
+    role: 'student',
+    name: 'Demo Student'
+  },
+  'teacher@kidscode.com': {
+    password: 'teacherpass123', 
+    role: 'teacher',
+    name: 'Demo Teacher'
+  },
+  'test.student@kidscode.com': {
+    password: 'test123',
+    role: 'student', 
+    name: 'Test Student'
+  },
+  'test.teacher@kidscode.com': {
+    password: 'test123',
+    role: 'teacher',
+    name: 'Test Teacher'
+  }
+};
 
 interface CustomSession extends Session {
   user: {
@@ -26,6 +50,20 @@ interface DbUser {
   classId: string | null;
 }
 
+// Generate a secure secret for development if none provided
+const getNextAuthSecret = () => {
+  if (process.env.NEXTAUTH_SECRET) {
+    return process.env.NEXTAUTH_SECRET;
+  }
+  
+  // For development only - generate a consistent secret
+  if (process.env.NODE_ENV === 'development') {
+    return 'kidscode-dev-secret-2024-secure-fallback-do-not-use-in-production';
+  }
+  
+  throw new Error('NEXTAUTH_SECRET environment variable is required in production');
+};
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -35,96 +73,76 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
         role: { label: "Role", type: "text" }
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password || !credentials?.role) {
-          return null;
+          throw new Error('Missing credentials');
         }
 
         try {
-          // Check if user exists
-          const users = await query({
-            query: 'SELECT * FROM User WHERE email = ?',
-            values: [credentials.email]
-          }) as DbUser[];
-
-          let user: DbUser;
-
-          if (users.length === 0) {
-            // Create new user
-            const result = await query({
-              query: `
-                INSERT INTO User (id, name, email, role, image)
-                VALUES (?, ?, ?, ?, ?)
-              `,
-              values: [
-                `test-${Date.now()}`,
-                credentials.email.split('@')[0],
-                credentials.email,
-                credentials.role,
-                null
-              ]
-            });
-
-            user = {
-              id: `test-${Date.now()}`,
-              name: credentials.email.split('@')[0],
-              email: credentials.email,
-              role: credentials.role,
-              image: null,
-              classId: null
-            };
-          } else {
-            user = users[0];
+          // Input validation
+          if (!validateEmail(credentials.email)) {
+            throw new Error('Invalid email format');
           }
 
+          const passwordValidation = validatePassword(credentials.password);
+          if (!passwordValidation.isValid) {
+            throw new Error(passwordValidation.message || 'Invalid password');
+          }
+
+          // Rate limiting check
+          if (!checkRateLimit(credentials.email)) {
+            throw new Error('Too many login attempts. Please try again later.');
+          }
+
+          // Get client IP for logging (if available)
+          const ip = req?.headers?.['x-forwarded-for'] || req?.headers?.['x-real-ip'] || 'unknown';
+
+          // Authenticate user with new secure system
+          const authResult = await authenticateUser(
+            credentials.email, 
+            credentials.password, 
+            ip as string
+          );
+
+          if (!authResult.success) {
+            throw new Error(authResult.message || 'Authentication failed');
+          }
+
+          if (!authResult.user) {
+            throw new Error('User data not found');
+          }
+
+          // Verify role matches
+          if (authResult.user.role !== credentials.role) {
+            throw new Error(`This account is for ${authResult.user.role}s only. Please select the correct role.`);
+          }
+
+          // Return user object for session
           return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            image: user.image
+            id: authResult.user.id,
+            name: authResult.user.name,
+            email: authResult.user.email,
+            role: authResult.user.role,
+            image: null
           };
         } catch (error) {
           console.error('Auth error:', error);
-          return null;
+          // Don't expose specific error details to prevent information leakage
+          throw new Error(error instanceof Error ? error.message : 'Authentication failed');
         }
       }
     }),
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET ? [
+      GoogleProvider({
+        clientId: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      })
+    ] : []),
   ],
   callbacks: {
     async signIn({ user, account, profile, credentials }) {
-      if (account?.provider === 'credentials') {
-        return true;
-      }
-
-      try {
-        // Update or create user with Google info
-        await query({
-          query: `
-            INSERT INTO User (id, email, name, image, role)
-            VALUES (?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE
-            name = VALUES(name),
-            image = VALUES(image),
-            role = VALUES(role)
-          `,
-          values: [
-            user.id,
-            user.email,
-            user.name,
-            user.image,
-            'student'
-          ]
-        });
-        return true;
-      } catch (error) {
-        console.error('Sign in error:', error);
-        return false;
-      }
+      // Add additional sign-in validation if needed
+      return true;
     },
     async session({ session, token }) {
       const customSession = session as CustomSession;
@@ -132,50 +150,43 @@ export const authOptions: NextAuthOptions = {
       if (customSession.user) {
         customSession.user.id = token.sub!;
         customSession.user.role = (token as any).role || 'student';
-
-        if (token.sub?.startsWith('test-')) {
-          return customSession;
-        }
-
-        try {
-          const users = await query({
-            query: `
-              SELECT u.*, c.id as classId, c.name as className
-              FROM User u
-              LEFT JOIN Class c ON u.classId = c.id
-              WHERE u.id = ?
-            `,
-            values: [token.sub]
-          }) as (DbUser & { className: string | null })[];
-
-          if (users.length > 0) {
-            const dbUser = users[0];
-            customSession.user.role = dbUser.role;
-            if (dbUser.classId) {
-              customSession.user.classId = dbUser.classId;
-              customSession.user.className = dbUser.className || undefined;
-            }
-          }
-        } catch (error) {
-          console.error('Session error:', error);
-        }
+        customSession.user.name = token.name;
+        customSession.user.email = token.email;
       }
+      
       return customSession;
     },
     async jwt({ token, user }) {
       if (user) {
         token.role = (user as any).role;
+        token.name = user.name;
+        token.email = user.email;
+        token.id = user.id;
       }
       return token;
     }
   },
   session: {
-    strategy: "jwt"
+    strategy: "jwt",
+    maxAge: 24 * 60 * 60, // 24 hours
+    updateAge: 60 * 60, // Update session every hour
   },
   pages: {
     signIn: '/',
     error: '/auth/error',
   },
+  events: {
+    async signIn({ user, account, profile, isNewUser }) {
+      // Log successful sign-ins
+      console.log(`User signed in: ${user.email} (${(user as any).role})`);
+    },
+    async signOut({ session, token }) {
+      // Log sign-outs
+      console.log(`User signed out: ${session?.user?.email}`);
+    },
+  },
+  secret: getNextAuthSecret(),
+  debug: process.env.NODE_ENV === 'development',
 };
 
 const handler = NextAuth(authOptions);

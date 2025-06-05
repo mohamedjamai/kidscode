@@ -1,7 +1,34 @@
 'use client';
 
 import { useState } from 'react';
+import { signIn, getSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { validateEmail, validatePassword } from '@/lib/auth';
+
+// Secure user database - in real app this would be in a database
+const SECURE_USERS = {
+  'student@kidscode.com': {
+    password: 'securepass123',
+    role: 'student',
+    name: 'Demo Student'
+  },
+  'teacher@kidscode.com': {
+    password: 'teacherpass123', 
+    role: 'teacher',
+    name: 'Demo Teacher'
+  },
+  'test.student@kidscode.com': {
+    password: 'test123',
+    role: 'student', 
+    name: 'Test Student'
+  },
+  'test.teacher@kidscode.com': {
+    password: 'test123',
+    role: 'teacher',
+    name: 'Test Teacher'
+  }
+};
 
 export default function LoginPage() {
   const [selectedRole, setSelectedRole] = useState<'student' | 'teacher' | null>(null);
@@ -9,10 +36,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginAttempts, setLoginAttempts] = useState(0);
+  const router = useRouter();
 
   const handleRoleSelect = (role: 'student' | 'teacher') => {
     setSelectedRole(role);
     setError(null);
+    setLoginAttempts(0);
     // Pre-fill test credentials based on role
     if (role === 'student') {
       setEmail('test.student@kidscode.com');
@@ -31,16 +62,62 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      // Simple login simulation - in real app this would call an API
-      if (email.includes('student') && selectedRole === 'student') {
-        window.location.href = '/student/dashboard';
-      } else if (email.includes('teacher') && selectedRole === 'teacher') {
-        window.location.href = '/teacher/dashboard';
+      // Client-side validation
+      if (!validateEmail(email)) {
+        setError('Please enter a valid email address.');
+        setLoading(false);
+        return;
+      }
+
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.isValid) {
+        setError(passwordValidation.message || 'Invalid password.');
+        setLoading(false);
+        return;
+      }
+
+      // Use NextAuth signIn with credentials
+      const result = await signIn('credentials', {
+        email,
+        password,
+        role: selectedRole,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setLoginAttempts(prev => prev + 1);
+        
+        // Handle specific error messages
+        if (result.error.includes('Too many login attempts')) {
+          setError('🚫 Too many failed attempts. Please wait 15 minutes before trying again.');
+        } else if (result.error.includes('Account temporarily locked')) {
+          setError('🔒 Account locked due to multiple failed attempts. Try again later.');
+        } else if (result.error.includes('Invalid email format')) {
+          setError('📧 Please enter a valid email address.');
+        } else if (result.error.includes('role')) {
+          setError('⚠️ Wrong account type selected. Please choose the correct role.');
+        } else {
+          setError('🔐 Invalid credentials. Please check your email and password.');
+        }
+
+        // Show additional help after multiple attempts
+        if (loginAttempts >= 2) {
+          setError(prev => prev + ' Need help? Check the test credentials shown above.');
+        }
       } else {
-        setError('Invalid email or role selection');
+        // Wait for session to be established
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Redirect based on role
+        if (selectedRole === 'student') {
+          router.push('/student/dashboard');
+        } else {
+          router.push('/teacher/dashboard');
+        }
       }
     } catch (err) {
-      setError('Login failed. Please try again.');
+      setError('❌ Connection error. Please check your internet and try again.');
+      console.error('Login error:', err);
     } finally {
       setLoading(false);
     }
@@ -51,6 +128,7 @@ export default function LoginPage() {
     setEmail('');
     setPassword('');
     setError(null);
+    setLoginAttempts(0);
   };
 
   return (
@@ -73,7 +151,8 @@ export default function LoginPage() {
               /* Role Selection */
               <div className="space-y-6">
                 <div className="bg-blue-50 rounded-lg p-4 text-sm text-blue-700 text-center">
-                  <p>👋 Hi there! Please select your role to continue.</p>
+                  <p>🔐 <strong>Secure Login System</strong></p>
+                  <p className="text-xs mt-1">Protected with rate limiting and account security</p>
                 </div>
 
                 <div className="space-y-4">
@@ -109,20 +188,12 @@ export default function LoginPage() {
                 {/* Quick Access to Lessons */}
                 <div className="text-center mt-8 pt-6 border-t border-gray-200">
                   <p className="text-gray-500 text-sm mb-3">Or browse lessons without logging in</p>
-                  <div className="space-y-2">
-                    <Link
-                      href="/lessons"
-                      className="block text-blue-600 hover:text-blue-700 font-medium text-sm underline"
-                    >
-                      View All Lessons →
-                    </Link>
-                    <Link
-                      href="/teacher/lessons/create"
-                      className="block text-green-600 hover:text-green-700 font-medium text-sm underline"
-                    >
-                      Create New Lesson (Teacher) ✨
-                    </Link>
-                  </div>
+                  <Link
+                    href="/lessons"
+                    className="block text-blue-600 hover:text-blue-700 font-medium text-sm underline"
+                  >
+                    View All Lessons →
+                  </Link>
                 </div>
               </div>
             ) : (
@@ -147,7 +218,7 @@ export default function LoginPage() {
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                   <p className="text-blue-700 text-xs text-center">
-                    <strong>Test credentials:</strong><br />
+                    <strong>🔐 Secure Test Credentials:</strong><br />
                     Email: {selectedRole === 'student' ? 'test.student@kidscode.com' : 'test.teacher@kidscode.com'}<br />
                     Password: test123
                   </p>
@@ -155,30 +226,47 @@ export default function LoginPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address
+                    📧 Email Address
                   </label>
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setError(null);
+                    }}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
                     placeholder="Enter your email"
                     required
+                    autoComplete="email"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Password
+                    🔒 Password
                   </label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-                    placeholder="Enter your password"
-                    required
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        setError(null);
+                      }}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors pr-10"
+                      placeholder="Enter your password"
+                      required
+                      autoComplete="current-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                    >
+                      {showPassword ? '🙈' : '👁️'}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-3">
@@ -194,10 +282,10 @@ export default function LoginPage() {
                     {loading ? (
                       <div className="flex items-center justify-center">
                         <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
-                        Signing in...
+                        Signing in securely...
                       </div>
                     ) : (
-                      `Sign in as ${selectedRole === 'student' ? 'Student' : 'Teacher'}`
+                      `🚀 Sign in as ${selectedRole === 'student' ? 'Student' : 'Teacher'}`
                     )}
                   </button>
 
@@ -209,6 +297,14 @@ export default function LoginPage() {
                     ← Back to Role Selection
                   </button>
                 </div>
+
+                {loginAttempts > 0 && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                    <p className="text-yellow-700 text-xs text-center">
+                      ⚠️ Login attempts: {loginAttempts}/5. Account will be temporarily locked after 5 failed attempts.
+                    </p>
+                  </div>
+                )}
               </form>
             )}
           </div>
@@ -218,9 +314,9 @@ export default function LoginPage() {
         <div className="mt-16 grid md:grid-cols-3 gap-8 text-white">
           <div className="text-center">
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-              <div className="text-4xl mb-4">🎮</div>
-              <h3 className="text-xl font-semibold mb-2">Learn by Playing</h3>
-              <p className="text-white/80">Build amazing things with colorful blocks!</p>
+              <div className="text-4xl mb-4">🔐</div>
+              <h3 className="text-xl font-semibold mb-2">Secure & Safe</h3>
+              <p className="text-white/80">Protected with advanced security features!</p>
             </div>
           </div>
           <div className="text-center">

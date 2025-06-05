@@ -72,13 +72,10 @@ export default function TeacherDashboard() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Header */}
+      {/* Welcome Section */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Teacher Dashboard</h1>
         <p className="text-gray-600">Welcome back! Here's your class overview.</p>
-        <Link href="/" className="text-blue-600 hover:text-blue-800 underline">
-          ← Back to Home
-        </Link>
       </div>
 
       {/* Class Statistics */}
@@ -102,12 +99,12 @@ export default function TeacherDashboard() {
       {/* Quick Actions */}
       <div className="grid md:grid-cols-3 gap-6 mb-8">
         <Link
-          href="/lessons"
-          className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow border hover:border-blue-300"
+          href="/teacher/lessons"
+          className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow border hover:border-purple-300"
         >
-          <div className="text-blue-600 text-2xl mb-2">📚</div>
-          <h2 className="text-lg font-semibold mb-2">View Lessons</h2>
-          <p className="text-gray-600">Browse all available lessons</p>
+          <div className="text-purple-600 text-2xl mb-2">🔧</div>
+          <h2 className="text-lg font-semibold mb-2">Manage Lessons</h2>
+          <p className="text-gray-600">Edit, delete, and preview lessons</p>
         </Link>
         <Link
           href="/teacher/lessons/create"
@@ -117,11 +114,14 @@ export default function TeacherDashboard() {
           <h2 className="text-lg font-semibold mb-2">Create New Lesson</h2>
           <p className="text-gray-600">Design exciting coding adventures</p>
         </Link>
-        <div className="bg-white rounded-xl shadow-lg p-6 border opacity-75">
-          <div className="text-gray-400 text-2xl mb-2">👥</div>
-          <h2 className="text-lg font-semibold mb-2 text-gray-500">Student Management</h2>
-          <p className="text-gray-400">Coming soon - manage student progress</p>
-        </div>
+        <Link
+          href="/teacher/submissions"
+          className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow border hover:border-blue-300"
+        >
+          <div className="text-blue-600 text-2xl mb-2">📝</div>
+          <h2 className="text-lg font-semibold mb-2">Review Submissions</h2>
+          <p className="text-gray-600">Grade and provide feedback on student work</p>
+        </Link>
       </div>
 
       {/* Student Progress Table */}

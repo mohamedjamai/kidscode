@@ -169,7 +169,7 @@ export default function StudentDashboard() {
                   {lessons.slice(0, 5).map((lesson) => (
                     <Link
                       key={lesson.id}
-                      href={`/lesson/${lesson.id}`}
+                      href={`/student/lesson/${lesson.id}`}
                       className="block group"
                     >
                       <div className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all">
