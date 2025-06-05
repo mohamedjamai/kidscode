@@ -117,10 +117,10 @@ export default function LoginPage() {
                       View All Lessons →
                     </Link>
                     <Link
-                      href="/admin/lessons/create"
+                      href="/teacher/lessons/create"
                       className="block text-green-600 hover:text-green-700 font-medium text-sm underline"
                     >
-                      Create New Lesson (Admin) ✨
+                      Create New Lesson (Teacher) ✨
                     </Link>
                   </div>
                 </div>

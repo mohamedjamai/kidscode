@@ -110,7 +110,7 @@ export default function TeacherDashboard() {
           <p className="text-gray-600">Browse all available lessons</p>
         </Link>
         <Link
-          href="/admin/lessons/create"
+          href="/teacher/lessons/create"
           className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow border hover:border-green-300"
         >
           <div className="text-green-600 text-2xl mb-2">✨</div>
