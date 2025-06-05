@@ -187,41 +187,91 @@ p {
     // Get student name from session
     const studentName = session?.user?.name || session?.user?.email?.split('@')[0] || 'Unknown Student';
 
+    console.log(`📤 Attempting to submit work for ${studentName} on lesson ${lesson?.id}`);
+
     setIsSubmitting(true);
     setSubmitMessage('');
 
     try {
+      const submissionData = {
+        student_name: studentName,
+        lesson_id: lesson?.id,
+        html_code: htmlCode,
+        css_code: cssCode,
+        javascript_code: javascriptCode,
+        preview_screenshot: generatePreview() // Send the HTML preview
+      };
+
+      console.log('📝 Submission data:', submissionData);
+
       const response = await fetch('/api/submissions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          student_name: studentName,
-          lesson_id: lesson?.id,
-          html_code: htmlCode,
-          css_code: cssCode,
-          javascript_code: javascriptCode,
-          preview_screenshot: generatePreview() // Send the HTML preview
-        }),
+        body: JSON.stringify(submissionData),
       });
 
       const data = await response.json();
+      console.log('📊 Submission response:', data);
 
       if (data.success) {
         setSubmitSuccess(true);
-        setSubmitMessage('Great work! Your lesson has been submitted successfully! 🎉');
+        setSubmitMessage(`🎉 Great work! Your lesson has been submitted successfully! ${data.submission_id ? `(ID: ${data.submission_id})` : ''}`);
+        console.log(`✅ Submission successful for ${studentName}`);
+        
         // Auto close modal after 3 seconds
         setTimeout(() => {
           setShowSubmitModal(false);
           setSubmitSuccess(false);
         }, 3000);
       } else {
+        console.error('❌ Submission failed:', data.message);
         setSubmitMessage(data.message || 'Failed to submit lesson');
       }
     } catch (error) {
-      console.error('Submission error:', error);
-      setSubmitMessage('Network error. Please try again.');
+      console.error('❌ Submission error:', error);
+      setSubmitMessage('Network error. Please check your connection and try again.');
+      
+      // Try a retry after 2 seconds
+      setTimeout(async () => {
+        if (!submitSuccess) {
+          console.log('🔄 Retrying submission...');
+          setSubmitMessage('Retrying submission...');
+          
+          try {
+            const retryResponse = await fetch('/api/submissions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                student_name: studentName,
+                lesson_id: lesson?.id,
+                html_code: htmlCode,
+                css_code: cssCode,
+                javascript_code: javascriptCode,
+                preview_screenshot: generatePreview()
+              }),
+            });
+
+            const retryData = await retryResponse.json();
+            
+            if (retryData.success) {
+              setSubmitSuccess(true);
+              setSubmitMessage(`🎉 Submission successful on retry! ${retryData.submission_id ? `(ID: ${retryData.submission_id})` : ''}`);
+              setTimeout(() => {
+                setShowSubmitModal(false);
+                setSubmitSuccess(false);
+              }, 3000);
+            } else {
+              setSubmitMessage('Submission failed. Please try again later or contact your teacher.');
+            }
+          } catch (retryError) {
+            setSubmitMessage('Unable to submit. Please save your work and try again later.');
+          }
+        }
+      }, 2000);
     } finally {
       setIsSubmitting(false);
     }

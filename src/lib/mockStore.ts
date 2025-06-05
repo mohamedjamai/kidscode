@@ -100,11 +100,46 @@ h1 {
     feedback: null,
     reviewed_by: null,
     reviewed_at: null
+  },
+  {
+    id: 3,
+    student_name: "Test Student",
+    lesson_id: 1,
+    lesson_title: "Introduction to HTML",
+    lesson_type: "html",
+    difficulty_name: "Beginner",
+    html_code: `<!DOCTYPE html>
+<html>
+<head>
+    <title>My Test Webpage</title>
+</head>
+<body>
+    <h1>Hello from Test Student!</h1>
+    <p>This is a test submission to verify the system works.</p>
+    <p>I just submitted this work!</p>
+</body>
+</html>`,
+    css_code: `h1 {
+    color: purple;
+    text-align: center;
+}
+
+p {
+    color: blue;
+    font-family: Arial, sans-serif;
+}`,
+    javascript_code: `console.log("Test submission working!");`,
+    submitted_at: new Date().toISOString(),
+    grade: null,
+    feedback: null,
+    reviewed_by: null,
+    reviewed_at: null
   }
 ];
 
 export const mockStore = {
   getAllSubmissions: (): MockSubmission[] => {
+    console.log(`📦 MockStore: Returning ${mockSubmissionsStore.length} submissions`);
     return mockSubmissionsStore.sort((a, b) => 
       new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime()
     );
@@ -121,6 +156,8 @@ export const mockStore = {
       id: newId
     };
     mockSubmissionsStore.push(newSubmission);
+    console.log(`📝 MockStore: Added new submission ${newId} for ${submission.student_name}`);
+    console.log(`📊 MockStore: Total submissions now: ${mockSubmissionsStore.length}`);
     return newId;
   },
 
@@ -131,8 +168,10 @@ export const mockStore = {
         ...mockSubmissionsStore[index],
         ...updates
       };
+      console.log(`✏️ MockStore: Updated submission ${id}`);
       return true;
     }
+    console.log(`❌ MockStore: Submission ${id} not found for update`);
     return false;
   },
 

@@ -15,6 +15,8 @@ async function createConnection() {
 
 // GET - Fetch all submissions
 export async function GET(request: NextRequest) {
+  console.log('📥 GET submissions API called');
+  
   try {
     const connection = await createConnection();
     
@@ -30,6 +32,8 @@ export async function GET(request: NextRequest) {
     `);
     
     await connection.end();
+    
+    console.log(`✅ Database returned ${(rows as any[]).length} submissions`);
 
     return NextResponse.json({
       success: true,
@@ -37,21 +41,29 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Database error:', error);
+    console.error('❌ Database error, falling back to mock store:', error);
     
     // Return mock data if database is not available
+    const mockSubmissions = mockStore.getAllSubmissions();
+    console.log(`📦 Mock store returned ${mockSubmissions.length} submissions:`, mockSubmissions.map(s => `${s.student_name} - ${s.lesson_title}`));
+    
     return NextResponse.json({
       success: true,
-      submissions: mockStore.getAllSubmissions()
+      submissions: mockSubmissions,
+      source: 'mock' // Debug info
     });
   }
 }
 
 // POST - Create new submission
 export async function POST(request: NextRequest) {
+  console.log('📨 POST submission API called');
+  
   try {
     const body = await request.json();
     const { student_name, lesson_id, html_code, css_code, javascript_code, preview_screenshot } = body;
+
+    console.log(`📝 New submission from ${student_name} for lesson ${lesson_id}`);
 
     // Validation
     if (!student_name || !lesson_id) {
@@ -73,6 +85,8 @@ export async function POST(request: NextRequest) {
 
       await connection.end();
 
+      console.log(`✅ Database submission created with ID: ${(result as any).insertId}`);
+
       return NextResponse.json({
         success: true,
         message: 'Submission created successfully',
@@ -80,7 +94,7 @@ export async function POST(request: NextRequest) {
       });
 
     } catch (dbError) {
-      console.error('Database error:', dbError);
+      console.error('❌ Database error, using mock store:', dbError);
       
       // Add to mock store if database is not available
       const lessonInfo = mockStore.getLessonInfo(lesson_id);
@@ -102,7 +116,8 @@ export async function POST(request: NextRequest) {
         reviewed_at: null
       });
       
-      console.log(`Mock submission created for ${student_name} on lesson ${lesson_id} with ID ${newSubmissionId}`);
+      console.log(`📦 Mock submission created for ${student_name} on lesson ${lesson_id} with ID ${newSubmissionId}`);
+      console.log(`📊 Total submissions in mock store: ${mockStore.getAllSubmissions().length}`);
       
       return NextResponse.json({
         success: true,
@@ -112,7 +127,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('API error:', error);
+    console.error('❌ API error:', error);
     return NextResponse.json(
       { success: false, message: 'Failed to create submission' },
       { status: 500 }

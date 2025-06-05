@@ -27,6 +27,8 @@ export default function SubmissionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [isReviewing, setIsReviewing] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [debugInfo, setDebugInfo] = useState<string>('');
   const [reviewForm, setReviewForm] = useState({
     grade: '',
     feedback: '',
@@ -35,21 +37,43 @@ export default function SubmissionsPage() {
 
   useEffect(() => {
     fetchSubmissions();
+    
+    // Auto-refresh every 10 seconds to catch new submissions
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-refreshing submissions...');
+      fetchSubmissions();
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const fetchSubmissions = async () => {
+    console.log('🔄 Fetching submissions...');
+    
     try {
-      const response = await fetch('/api/submissions');
+      const response = await fetch('/api/submissions', {
+        cache: 'no-cache',
+        headers: {
+          'Cache-Control': 'no-cache',
+        }
+      });
       const data = await response.json();
       
+      console.log('📊 API Response:', data);
+      
       if (data.success) {
-        setSubmissions(data.submissions);
+        setSubmissions(data.submissions || []);
+        setDebugInfo(`Last fetch: ${new Date().toLocaleTimeString()}, Found: ${data.submissions?.length || 0} submissions${data.source ? ` (${data.source})` : ''}`);
+        setLastRefresh(new Date());
+        console.log(`✅ Loaded ${data.submissions?.length || 0} submissions`);
       } else {
         setError(data.message || 'Failed to load submissions');
+        setDebugInfo(`Error: ${data.message}`);
       }
     } catch (err) {
+      console.error('❌ Failed to load submissions:', err);
       setError('Failed to load submissions');
-      console.error('Error fetching submissions:', err);
+      setDebugInfo(`Network error: ${err}`);
     } finally {
       setLoading(false);
     }
@@ -150,13 +174,44 @@ export default function SubmissionsPage() {
       <div className="container mx-auto px-4 py-8">
         {/* Page Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Student Submissions</h1>
-          <p className="text-gray-600">Review and grade student work</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Student Submissions</h1>
+              <p className="text-gray-600">Review and grade student work</p>
+            </div>
+            <div className="text-right">
+              <button
+                onClick={fetchSubmissions}
+                className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2"
+              >
+                <span>🔄</span>
+                <span>Refresh</span>
+              </button>
+              <p className="text-xs text-gray-500 mt-1">
+                Last updated: {lastRefresh.toLocaleTimeString()}
+              </p>
+            </div>
+          </div>
+          
+          {/* Debug Information */}
+          {debugInfo && (
+            <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-blue-700 text-sm">
+                <strong>Debug:</strong> {debugInfo}
+              </p>
+            </div>
+          )}
         </div>
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
             <p className="text-red-600">{error}</p>
+            <button 
+              onClick={() => setError(null)}
+              className="text-red-500 text-sm underline mt-2"
+            >
+              Dismiss
+            </button>
           </div>
         )}
 
@@ -165,7 +220,14 @@ export default function SubmissionsPage() {
           <div className="w-1/2">
             <div className="bg-white rounded-xl shadow-lg border">
               <div className="p-6 border-b border-gray-200">
-                <h2 className="text-xl font-bold text-gray-900">Submissions ({submissions.length})</h2>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-gray-900">
+                    Submissions ({submissions.length})
+                  </h2>
+                  <div className="text-sm text-gray-500">
+                    Auto-refresh every 10s
+                  </div>
+                </div>
               </div>
               
               <div className="max-h-[calc(100vh-300px)] overflow-y-auto">
@@ -173,14 +235,17 @@ export default function SubmissionsPage() {
                   <div className="text-center py-12">
                     <div className="text-6xl mb-4">📝</div>
                     <h3 className="text-xl font-bold text-gray-700 mb-2">No submissions yet</h3>
-                    <p className="text-gray-500">Students haven't submitted any work yet</p>
+                    <p className="text-gray-500 mb-4">Students haven't submitted any work yet</p>
+                    <div className="text-xs text-gray-400">
+                      {debugInfo && `Debug: ${debugInfo}`}
+                    </div>
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-200">
                     {submissions.map((submission) => (
                       <div 
                         key={submission.id} 
-                        className={`p-4 hover:bg-gray-50 cursor-pointer ${
+                        className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
                           selectedSubmission?.id === submission.id ? 'bg-purple-50 border-l-4 border-purple-500' : ''
                         }`}
                         onClick={() => setSelectedSubmission(submission)}
@@ -198,22 +263,14 @@ export default function SubmissionsPage() {
                                 </span>
                               </div>
                               <p className="text-gray-600 text-sm mb-1">{submission.lesson_title}</p>
-                              <p className="text-gray-500 text-xs">
-                                Submitted: {new Date(submission.submitted_at).toLocaleDateString()}
+                              <p className="text-gray-400 text-xs">
+                                {new Date(submission.submitted_at).toLocaleDateString()} at{' '}
+                                {new Date(submission.submitted_at).toLocaleTimeString()}
                               </p>
                             </div>
                           </div>
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleReview(submission);
-                              }}
-                              className="text-blue-600 hover:text-blue-700 p-1"
-                              title="Review submission"
-                            >
-                              ✏️
-                            </button>
+                          <div className="text-right">
+                            <span className="text-gray-400 text-xs">#{submission.id}</span>
                           </div>
                         </div>
                       </div>
