@@ -1,77 +1,52 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { prisma } from '@/lib/prisma';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import type { Progress } from '@prisma/client';
+import { NextRequest, NextResponse } from 'next/server';
 
-type UserWithProgress = {
-  id: string;
-  name: string | null;
-  email: string | null;
-  progress: (Progress & {
-    lesson: {
-      difficulty: {
-        name: string;
-      };
-    };
-  })[];
-};
-
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || session.user.role !== 'teacher') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    // Get all students in the teacher's class with their progress
-    const students = await prisma.user.findMany({
-      where: {
-        role: 'student',
-        classId: session.user.classId,
+    // Mock student data - in real app, this would fetch from database
+    const mockStudents = [
+      {
+        id: '1',
+        name: 'Emma van der Berg',
+        email: 'emma.vandenberg@school.nl',
+        student_number: '2024001',
+        class_id: 'KLAS-A',
+        school_id: 'SCHOOL-001',
+        profile_picture: '/images/avatars/student-1.jpg',
+        is_active: true,
+        created_at: '2024-01-15T10:00:00Z',
+        progress: { completed: 4, total: 8, percentage: 50 },
+        currentLevel: 'Beginner',
+        lastActive: '2024-12-20T14:30:00Z',
+        averageGrade: 7.8
       },
-      include: {
-        progress: {
-          include: {
-            lesson: {
-              include: {
-                difficulty: true,
-              },
-            },
-          },
-        },
+      {
+        id: '2',
+        name: 'Lucas Janssen',
+        email: 'lucas.janssen@school.nl',
+        student_number: '2024002',
+        class_id: 'KLAS-A',
+        school_id: 'SCHOOL-001',
+        profile_picture: '/images/avatars/student-2.jpg',
+        is_active: true,
+        created_at: '2024-01-20T09:15:00Z',
+        progress: { completed: 6, total: 8, percentage: 75 },
+        currentLevel: 'Intermediate',
+        lastActive: '2024-12-21T11:45:00Z',
+        averageGrade: 8.2
       },
+      // Add more mock students as needed
+    ];
+
+    return NextResponse.json({
+      success: true,
+      students: mockStudents
     });
 
-    // Transform the data for the frontend
-    const transformedStudents = students.map((student: UserWithProgress) => {
-      const totalLessons = student.progress.length;
-      const completedLessons = student.progress.filter((p: Progress) => p.completed).length;
-      const currentLevel = student.progress[0]?.lesson.difficulty.name || 'Beginner';
-
-      return {
-        id: student.id,
-        name: student.name || '',
-        email: student.email || '',
-        progress: {
-          completed: completedLessons,
-          total: totalLessons,
-          percentage: totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0,
-        },
-        currentLevel,
-      };
-    });
-
-    return NextResponse.json(transformedStudents);
   } catch (error) {
     console.error('Error fetching students:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Failed to fetch students' 
+    }, { status: 500 });
   }
 } 

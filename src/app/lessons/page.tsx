@@ -14,15 +14,15 @@ interface Lesson {
 }
 
 const LESSON_TYPES = [
-  { value: 'all', label: 'All Lessons', icon: '🌟', color: 'bg-gradient-to-r from-purple-500 to-pink-500' },
-  { value: 'html', label: 'HTML', icon: '🌐', color: 'bg-orange-500' },
-  { value: 'css', label: 'CSS', icon: '🎨', color: 'bg-blue-500' },
-  { value: 'javascript', label: 'JavaScript', icon: '⚡', color: 'bg-yellow-500' },
-  { value: 'python', label: 'Python', icon: '🐍', color: 'bg-green-500' },
-  { value: 'blocks', label: 'Blocks', icon: '🧩', color: 'bg-purple-500' }
+  { value: 'all', label: 'All Lessons', icon: '🌟', color: 'from-purple-500 to-pink-500' },
+  { value: 'html', label: 'HTML', icon: '🌐', color: 'from-orange-400 to-orange-600' },
+  { value: 'css', label: 'CSS', icon: '🎨', color: 'from-blue-400 to-blue-600' },
+  { value: 'javascript', label: 'JavaScript', icon: '⚡', color: 'from-yellow-400 to-yellow-600' },
+  { value: 'python', label: 'Python', icon: '🐍', color: 'from-green-400 to-green-600' },
+  { value: 'blocks', label: 'Blocks', icon: '🧩', color: 'from-purple-400 to-purple-600' }
 ];
 
-export default function LessonsPage() {
+export default function LessonsPreviewPage() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [filteredLessons, setFilteredLessons] = useState<Lesson[]>([]);
   const [selectedType, setSelectedType] = useState('all');
@@ -61,21 +61,22 @@ export default function LessonsPage() {
 
   const getDifficultyColor = (level: number) => {
     switch (level) {
-      case 1: return 'bg-green-100 text-green-800';
-      case 2: return 'bg-yellow-100 text-yellow-800';
-      case 3: return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 1: return 'bg-green-100 text-green-800 border-green-200';
+      case 2: return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 3: return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 4: return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
   const getLessonTypeColor = (type: string) => {
     switch (type.toLowerCase()) {
-      case 'html': return 'bg-orange-500';
-      case 'css': return 'bg-blue-500';
-      case 'javascript': return 'bg-yellow-500';
-      case 'python': return 'bg-green-500';
-      case 'blocks': return 'bg-purple-500';
-      default: return 'bg-gray-500';
+      case 'html': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'css': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'javascript': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'python': return 'bg-green-100 text-green-800 border-green-200';
+      case 'blocks': return 'bg-purple-100 text-purple-800 border-purple-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
@@ -104,13 +105,10 @@ export default function LessonsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-        <div className="container mx-auto px-4 py-16">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mx-auto mb-6"></div>
-            <h2 className="text-2xl font-bold text-gray-700 mb-2">Loading Amazing Lessons...</h2>
-            <p className="text-gray-500">Get ready to start your coding adventure! 🚀</p>
-          </div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading available lessons...</p>
         </div>
       </div>
     );
@@ -118,210 +116,201 @@ export default function LessonsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-        <div className="container mx-auto px-4 py-16">
-          <div className="text-center">
-            <div className="text-6xl mb-6">😕</div>
-            <h2 className="text-2xl font-bold text-gray-700 mb-4">Oops! Something went wrong</h2>
-            <p className="text-gray-600 mb-6">{error}</p>
-            <button 
-              onClick={fetchLessons}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold transition-all transform hover:scale-105"
-            >
-              Try Again 🔄
-            </button>
-          </div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 text-center max-w-md w-full">
+          <div className="text-red-500 text-4xl mb-4">😕</div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Error Loading Lessons</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
+          <button
+            onClick={fetchLessons}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+          >
+            Try Again 🔄
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Professional Header */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Link 
-                href="/"
-                className="flex items-center text-blue-600 hover:text-blue-700 font-medium mr-6 transition-colors"
-              >
-                ← Back to Home
-              </Link>
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                📚
+              </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Coding Lessons</h1>
-                <p className="text-gray-600">Choose your adventure and start learning! 🚀</p>
+                <h1 className="text-lg font-bold text-gray-900 dark:text-white">
+                  Available Lessons 🚀
+                </h1>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Login required to start coding!
+                </p>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <Link
-                href="/student/dashboard"
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+            <div className="flex items-center space-x-2">
+              <button 
+                onClick={() => window.location.href = '/'}
+                className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
               >
-                Dashboard
-              </Link>
+                🔓 Login
+              </button>
             </div>
           </div>
         </div>
-      </header>
+      </div>
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Stats Cards */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-lg p-6 border">
-            <div className="flex items-center">
-              <div className="bg-blue-100 p-3 rounded-full">
-                <span className="text-2xl">📚</span>
-              </div>
-              <div className="ml-4">
-                <p className="text-gray-500 text-sm">Total Lessons</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-              </div>
+      {/* Content */}
+      <div className="p-4">
+        {/* Security Notice */}
+        <div className="bg-gradient-to-r from-amber-400 to-orange-500 rounded-2xl p-6 text-white mb-6 shadow-xl">
+          <div className="flex items-center space-x-3 mb-3">
+            <div className="text-2xl">🔐</div>
+            <div>
+              <h2 className="text-lg font-bold">Secure Access Required</h2>
+              <p className="text-amber-100 text-sm">Enhanced security for student safety</p>
             </div>
           </div>
+          <p className="text-sm opacity-90">
+            For security reasons, you can preview lessons here but must log in fresh each time to access them. 
+            No login sessions are saved for enhanced security.
+          </p>
+        </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6 border">
-            <div className="flex items-center">
-              <div className="bg-green-100 p-3 rounded-full">
-                <span className="text-2xl">🌱</span>
-              </div>
-              <div className="ml-4">
-                <p className="text-gray-500 text-sm">Beginner</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.beginner}</p>
-              </div>
+        {/* Course Overview */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm mb-6">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Course Overview</h2>
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <div className="text-2xl font-bold text-blue-600 mb-1">{stats.total}</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Total Lessons</div>
             </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6 border">
-            <div className="flex items-center">
-              <div className="bg-yellow-100 p-3 rounded-full">
-                <span className="text-2xl">🎯</span>
-              </div>
-              <div className="ml-4">
-                <p className="text-gray-500 text-sm">Intermediate</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.intermediate}</p>
-              </div>
+            <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+              <div className="text-2xl font-bold text-green-600 mb-1">{stats.beginner}</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Beginner</div>
             </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6 border">
-            <div className="flex items-center">
-              <div className="bg-red-100 p-3 rounded-full">
-                <span className="text-2xl">🏆</span>
-              </div>
-              <div className="ml-4">
-                <p className="text-gray-500 text-sm">Advanced</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.advanced}</p>
-              </div>
+            <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+              <div className="text-2xl font-bold text-orange-600 mb-1">{stats.intermediate + stats.advanced}</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Advanced</div>
             </div>
           </div>
         </div>
 
-        {/* Filter Tabs */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8 border">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Choose Your Programming Language 🎨</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {/* Filter by Type */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm mb-6">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Filter by Type</h2>
+          
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
             {LESSON_TYPES.map((type) => (
               <button
                 key={type.value}
                 onClick={() => setSelectedType(type.value)}
-                className={`
-                  p-4 rounded-xl border-2 text-center transition-all transform hover:scale-105
-                  ${selectedType === type.value 
-                    ? 'border-blue-500 bg-blue-50 shadow-lg' 
-                    : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
-                  }
-                `}
+                className={`flex items-center justify-center py-3 px-3 rounded-xl text-sm font-medium transition-all ${
+                  selectedType === type.value
+                    ? `bg-gradient-to-r ${type.color} text-white shadow-lg transform scale-105`
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
               >
-                <div className="text-3xl mb-2">{type.icon}</div>
-                <div className="font-semibold text-gray-800">{type.label}</div>
-                <div className="text-sm text-gray-500 mt-1">
-                  {type.value === 'all' ? stats.total : stats.byType[type.value] || 0} lessons
-                </div>
+                <span className="text-lg mr-2">{type.icon}</span>
+                <span className="truncate">{type.label}</span>
               </button>
             ))}
+          </div>
+          
+          <div className="text-center">
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              Showing {filteredLessons.length} of {lessons.length} lessons
+            </span>
           </div>
         </div>
 
         {/* Lessons Grid */}
-        <div className="bg-white rounded-xl shadow-lg p-6 border">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900">
-              {selectedType === 'all' ? 'All Lessons' : `${LESSON_TYPES.find(t => t.value === selectedType)?.label} Lessons`}
-              <span className="text-gray-500 font-normal"> ({filteredLessons.length})</span>
-            </h2>
-          </div>
-
+        <div className="mb-6">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+            {selectedType === 'all' ? 'All Lessons' : `${LESSON_TYPES.find(t => t.value === selectedType)?.label} Lessons`}
+          </h2>
+          
           {filteredLessons.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">📚</div>
-              <h3 className="text-xl font-bold text-gray-700 mb-2">No lessons found</h3>
-              <p className="text-gray-500">
-                {selectedType === 'all' 
-                  ? 'No lessons are available yet.' 
-                  : `No ${selectedType.toUpperCase()} lessons are available yet.`
-                }
-              </p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-sm text-center">
+              <div className="text-4xl mb-3">📖</div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No lessons found</h3>
+              <p className="text-gray-600 dark:text-gray-400">No lessons found for the selected type</p>
             </div>
           ) : (
             <div className="space-y-4">
               {filteredLessons.map((lesson) => (
-                <Link
-                  key={lesson.id}
-                  href={`/student/lesson/${lesson.id}`}
-                  className="block group"
-                >
-                  <div className="flex items-center p-6 border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-lg transition-all">
-                    <div className={`w-16 h-16 rounded-xl ${getLessonTypeColor(lesson.lesson_type)} flex items-center justify-center text-white shadow-lg`}>
-                      <span className="text-2xl">{getTypeIcon(lesson.lesson_type)}</span>
+                <div key={lesson.id} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-400 to-purple-600 flex items-center justify-center text-white text-xl shadow-sm">
+                      {getTypeIcon(lesson.lesson_type)}
                     </div>
-                    <div className="ml-6 flex-1">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-3">
-                          <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-                            {lesson.title}
-                          </h3>
-                          <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
-                            #{lesson.order_number}
-                          </span>
-                        </div>
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${getDifficultyColor(lesson.difficulty_level)}`}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="font-semibold text-gray-900 dark:text-white text-base leading-5">
+                          {lesson.title}
+                        </h3>
+                        <span className="text-xs text-gray-500 ml-2 flex-shrink-0">
+                          #{lesson.order_number}
+                        </span>
+                      </div>
+                      
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+                        {lesson.description}
+                      </p>
+                      
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getDifficultyColor(lesson.difficulty_level)}`}>
                           {lesson.difficulty_name}
                         </span>
-                      </div>
-                      <p className="text-gray-600 mb-3">{lesson.description}</p>
-                      <div className="flex items-center space-x-3">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium text-white ${getLessonTypeColor(lesson.lesson_type)}`}>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getLessonTypeColor(lesson.lesson_type)}`}>
                           {lesson.lesson_type.toUpperCase()}
                         </span>
-                        <span className="text-sm text-gray-500">Click to start learning!</span>
                       </div>
-                    </div>
-                    <div className="ml-6">
-                      <div className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold group-hover:transform group-hover:scale-105 transition-all shadow-lg">
-                        Start Lesson →
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          🔐 Login required to start
+                        </span>
+                        <button
+                          onClick={() => {
+                            alert('🔐 Please log in first to access this lesson!\n\nFor security, you need to authenticate before starting any lesson.');
+                          }}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                        >
+                          Start Lesson →
+                        </button>
                       </div>
                     </div>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* Fun Learning Tips */}
-        <div className="mt-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl shadow-xl p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-xl font-bold mb-2">🎯 Ready to Start Coding?</h3>
-              <p className="text-purple-100">
-                Pick any lesson that looks fun! Start with HTML if you're new to coding, or jump into any topic that excites you.
-              </p>
-            </div>
-            <div className="text-6xl opacity-20">
-              🚀
-            </div>
+        {/* Call to Action */}
+        <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl p-6 text-white text-center shadow-xl">
+          <div className="text-4xl mb-3">🚀</div>
+          <h2 className="text-xl font-bold mb-2">Ready to Start Learning?</h2>
+          <p className="text-blue-100 text-sm mb-4">
+            Join KidsCode today and begin your coding journey with fun, interactive lessons!
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              onClick={() => window.location.href = '/'}
+              className="px-6 py-3 bg-white text-blue-600 rounded-lg font-medium hover:bg-gray-100 transition-colors"
+            >
+              🔓 Login to Start Learning
+            </button>
+            <button
+              onClick={() => window.location.href = '/accessibility-demo'}
+              className="px-6 py-3 bg-white/20 text-white border border-white/30 rounded-lg font-medium hover:bg-white/30 transition-colors"
+            >
+              ♿ Accessibility Features
+            </button>
           </div>
         </div>
       </div>

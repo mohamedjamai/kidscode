@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useCSRF } from '@/hooks/useCSRF';
+import { securePost } from '@/lib/api';
 
 interface DifficultyLevel {
   id: number;
@@ -32,6 +34,9 @@ export default function CreateLessonPage() {
   const [message, setMessage] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
 
+  // CSRF protection hook
+  const { token: csrfToken, loading: csrfLoading, error: csrfError, refreshToken } = useCSRF();
+
   // Fetch difficulty levels on component mount
   useEffect(() => {
     const fetchDifficultyLevels = async () => {
@@ -54,6 +59,14 @@ export default function CreateLessonPage() {
     setLoading(true);
     setMessage('');
 
+    // Check CSRF token availability
+    if (!csrfToken) {
+      setMessage('Security token niet beschikbaar. Probeer de pagina te verversen.');
+      setIsSuccess(false);
+      setLoading(false);
+      return;
+    }
+
     // Debug: Log form data before sending
     console.log('Form data before sending:', formData);
     
@@ -65,12 +78,9 @@ export default function CreateLessonPage() {
     console.log('Data being sent to API:', submitData);
 
     try {
-      const response = await fetch('/api/lessons', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(submitData),
+      // Use secure API call with CSRF protection
+      const response = await securePost('/api/lessons', submitData, {
+        csrfToken: csrfToken
       });
 
       console.log('Response status:', response.status);
@@ -78,7 +88,7 @@ export default function CreateLessonPage() {
       console.log('Response data:', data);
 
       if (data.success) {
-        setMessage('Lesson created successfully! 🎉');
+        setMessage('Les succesvol aangemaakt! 🎉');
         setIsSuccess(true);
         // Reset form
         setFormData({
@@ -89,12 +99,26 @@ export default function CreateLessonPage() {
           difficulty_level_id: ''
         });
       } else {
-        setMessage(data.message || 'Failed to create lesson');
-        setIsSuccess(false);
+        // Handle CSRF errors specifically
+        if (data.code === 'CSRF_INVALID') {
+          setMessage('Beveiligingstoken verlopen. Probeer opnieuw...');
+          setIsSuccess(false);
+          // Refresh CSRF token
+          await refreshToken();
+        } else {
+          setMessage(data.message || 'Fout bij aanmaken van les');
+          setIsSuccess(false);
+        }
       }
     } catch (error) {
       console.error('Network error:', error);
-      setMessage('Network error. Please try again.');
+      
+      if (error instanceof Error && error.message.includes('CSRF token required')) {
+        setMessage('Beveiligingstoken vereist. Probeer de pagina te verversen.');
+        await refreshToken();
+      } else {
+        setMessage('Netwerkfout. Probeer opnieuw.');
+      }
       setIsSuccess(false);
     } finally {
       setLoading(false);
@@ -107,6 +131,46 @@ export default function CreateLessonPage() {
       [e.target.name]: e.target.value
     });
   };
+
+  // Show CSRF loading state
+  if (csrfLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-purple-500 mx-auto mb-4"></div>
+          <h2 className="text-lg font-semibold text-gray-700 mb-2">
+            Beveiligingscontrole...
+          </h2>
+          <p className="text-gray-500">
+            Even geduld terwijl we alles veilig maken
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show CSRF error
+  if (csrfError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="max-w-md bg-white rounded-xl shadow-lg p-8 text-center">
+          <div className="text-6xl mb-4">🔒❌</div>
+          <h2 className="text-xl font-bold text-red-600 mb-4">
+            Beveiligingsfout
+          </h2>
+          <p className="text-gray-600 mb-6">
+            {csrfError}
+          </p>
+          <button
+            onClick={refreshToken}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+          >
+            🔄 Probeer Opnieuw
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">

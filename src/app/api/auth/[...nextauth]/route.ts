@@ -36,8 +36,10 @@ interface CustomSession extends Session {
     email?: string | null;
     image?: string | null;
     role: string;
-    classId?: string;
-    className?: string;
+    student_number?: string;
+    profile_picture?: string;
+    class_id?: string;
+    school_id?: string;
   };
 }
 
@@ -65,7 +67,7 @@ const getSecureSecret = () => {
   return devSecret;
 };
 
-export const authOptions: NextAuthOptions = {
+const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -124,6 +126,10 @@ export const authOptions: NextAuthOptions = {
             name: authResult.user.name,
             email: authResult.user.email,
             role: authResult.user.role,
+            student_number: authResult.user.student_number,
+            profile_picture: authResult.user.profile_picture,
+            class_id: authResult.user.class_id,
+            school_id: authResult.user.school_id,
             image: null
           };
         } catch (error) {
@@ -153,6 +159,10 @@ export const authOptions: NextAuthOptions = {
         customSession.user.role = (token as any).role || 'student';
         customSession.user.name = token.name;
         customSession.user.email = token.email;
+        customSession.user.student_number = (token as any).student_number;
+        customSession.user.profile_picture = (token as any).profile_picture;
+        customSession.user.class_id = (token as any).class_id;
+        customSession.user.school_id = (token as any).school_id;
       }
       
       return customSession;
@@ -163,14 +173,50 @@ export const authOptions: NextAuthOptions = {
         token.name = user.name;
         token.email = user.email;
         token.id = user.id;
+        token.student_number = (user as any).student_number;
+        token.profile_picture = (user as any).profile_picture;
+        token.class_id = (user as any).class_id;
+        token.school_id = (user as any).school_id;
       }
       return token;
     }
   },
   session: {
     strategy: "jwt",
-    maxAge: 24 * 60 * 60, // 24 hours
-    updateAge: 60 * 60, // Update session every hour
+    maxAge: 5 * 60, // 5 minutes only - very short session
+    updateAge: 60, // Update every minute (doesn't matter much with 5min max)
+  },
+  cookies: {
+    sessionToken: {
+      name: `kidscode.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'strict',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 5 * 60, // 5 minutes
+      }
+    },
+    callbackUrl: {
+      name: `kidscode.callback-url`,
+      options: {
+        httpOnly: true,
+        sameSite: 'strict',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 5 * 60, // 5 minutes
+      }
+    },
+    csrfToken: {
+      name: `kidscode.csrf-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'strict',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 5 * 60, // 5 minutes
+      }
+    }
   },
   pages: {
     signIn: '/',
@@ -178,13 +224,20 @@ export const authOptions: NextAuthOptions = {
   },
   events: {
     async signIn({ user, account, profile, isNewUser }) {
-      // Log successful sign-ins
-      console.log(`User signed in: ${user.email} (${(user as any).role})`);
+      // Log successful sign-ins with security notice
+      console.log(`🔓 Secure login: ${user.email} (${(user as any).role}) - Session expires in 5 minutes`);
     },
     async signOut({ session, token }) {
       // Log sign-outs
-      console.log(`User signed out: ${session?.user?.email}`);
+      console.log(`🔒 User signed out: ${session?.user?.email || 'unknown'}`);
     },
+    async session({ session, token }) {
+      // Log active sessions (will happen frequently with short sessions)
+      // Only log occasionally to reduce noise
+      if (Math.random() < 0.1) { // 10% chance to log
+        console.log(`🔄 Active session: ${session?.user?.email} - Security mode: High`);
+      }
+    }
   },
   secret: getSecureSecret(),
   debug: false, // Turn off debug to reduce noise

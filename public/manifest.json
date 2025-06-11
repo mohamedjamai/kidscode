@@ -1,0 +1,52 @@
+{
+  "name": "KidsCode - Leren Programmeren voor Kinderen",
+  "short_name": "KidsCode",
+  "description": "Een veilige en toegankelijke omgeving waar kinderen leren programmeren met plezier",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "categories": ["education", "kids"],
+  "lang": "nl",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png", 
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Lessen",
+      "short_name": "Lessen",
+      "description": "Bekijk alle beschikbare lessen",
+      "url": "/lessons",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Student Dashboard",
+      "short_name": "Student",
+      "description": "Ga naar het student dashboard",
+      "url": "/student/dashboard",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+} 

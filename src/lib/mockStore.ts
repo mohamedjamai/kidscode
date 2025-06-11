@@ -1,4 +1,17 @@
 // Shared in-memory store for submissions when database is not available
+
+import { writeFileSync, readFileSync, existsSync } from 'fs';
+import { join } from 'path';
+
+// Debug flag - set to true to enable detailed logging
+const DEBUG_MODE = false;
+
+// Simple file-based persistence for development
+const STORE_FILE = join(process.cwd(), 'temp_mockstore.json');
+
+// Simple ID counter - starts at 1 and increments
+let nextSubmissionId = 1;
+
 interface MockSubmission {
   id: number;
   student_name: string;
@@ -17,147 +30,85 @@ interface MockSubmission {
   reviewed_at: string | null;
 }
 
-let mockSubmissionsStore: MockSubmission[] = [
-  {
-    id: 1,
-    student_name: "Emma Johnson",
-    lesson_id: 1,
-    lesson_title: "Introduction to HTML",
-    lesson_type: "html",
-    difficulty_name: "Beginner",
-    html_code: `<!DOCTYPE html>
-<html>
-<head>
-    <title>My First Website</title>
-</head>
-<body>
-    <h1>Hello World!</h1>
-    <p>This is my first webpage! I'm learning HTML.</p>
-    <h2>About Me</h2>
-    <p>My name is Emma and I love coding!</p>
-</body>
-</html>`,
-    css_code: `h1 {
-    color: blue;
-    text-align: center;
-}
+// Load existing data on module load
+let mockSubmissionsStore: MockSubmission[] = [];
 
-p {
-    color: green;
-    font-size: 16px;
-}`,
-    javascript_code: `console.log("Hello from Emma's webpage!");`,
-    submitted_at: "2025-01-05T10:30:00Z",
-    grade: 95,
-    feedback: "Excellent work! Great use of HTML elements and structure.",
-    reviewed_by: "Ms. Smith",
-    reviewed_at: "2025-01-05T15:45:00Z"
-  },
-  {
-    id: 2,
-    student_name: "Alex Chen",
-    lesson_id: 2,
-    lesson_title: "CSS Styling Basics",
-    lesson_type: "css",
-    difficulty_name: "Beginner",
-    html_code: `<!DOCTYPE html>
-<html>
-<head>
-    <title>Colorful Page</title>
-</head>
-<body>
-    <h1>Welcome to my colorful page</h1>
-    <p class="highlight">This paragraph has special styling!</p>
-    <div class="box">This is a styled box</div>
-</body>
-</html>`,
-    css_code: `body {
-    background-color: lightblue;
-    font-family: Arial, sans-serif;
-}
-
-h1 {
-    color: darkblue;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-}
-
-.highlight {
-    background-color: yellow;
-    padding: 10px;
-    border-radius: 5px;
-}
-
-.box {
-    background-color: lightgreen;
-    padding: 20px;
-    margin: 10px;
-    border: 2px solid green;
-    border-radius: 10px;
-}`,
-    javascript_code: ``,
-    submitted_at: "2025-01-05T14:20:00Z",
-    grade: null,
-    feedback: null,
-    reviewed_by: null,
-    reviewed_at: null
-  },
-  {
-    id: 3,
-    student_name: "Test Student",
-    lesson_id: 1,
-    lesson_title: "Introduction to HTML",
-    lesson_type: "html",
-    difficulty_name: "Beginner",
-    html_code: `<!DOCTYPE html>
-<html>
-<head>
-    <title>My Test Webpage</title>
-</head>
-<body>
-    <h1>Hello from Test Student!</h1>
-    <p>This is a test submission to verify the system works.</p>
-    <p>I just submitted this work!</p>
-</body>
-</html>`,
-    css_code: `h1 {
-    color: purple;
-    text-align: center;
-}
-
-p {
-    color: blue;
-    font-family: Arial, sans-serif;
-}`,
-    javascript_code: `console.log("Test submission working!");`,
-    submitted_at: new Date().toISOString(),
-    grade: null,
-    feedback: null,
-    reviewed_by: null,
-    reviewed_at: null
+function loadFromFile() {
+  try {
+    if (existsSync(STORE_FILE)) {
+      const data = JSON.parse(readFileSync(STORE_FILE, 'utf8'));
+      mockSubmissionsStore = data.submissions || [];
+      nextSubmissionId = data.nextId || 1;
+      if (DEBUG_MODE) {
+        console.log(`📂 Loaded ${mockSubmissionsStore.length} submissions from file, next ID: ${nextSubmissionId}`);
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to load mock store from file:', error);
+    mockSubmissionsStore = [];
+    nextSubmissionId = 1;
   }
-];
+}
+
+function saveToFile() {
+  try {
+    const data = {
+      submissions: mockSubmissionsStore,
+      nextId: nextSubmissionId,
+      timestamp: new Date().toISOString()
+    };
+    writeFileSync(STORE_FILE, JSON.stringify(data, null, 2));
+    if (DEBUG_MODE) {
+      console.log(`💾 Saved ${mockSubmissionsStore.length} submissions to file`);
+    }
+  } catch (error) {
+    console.warn('Failed to save mock store to file:', error);
+  }
+}
+
+// Load on startup
+loadFromFile();
 
 export const mockStore = {
   getAllSubmissions: (): MockSubmission[] => {
-    console.log(`📦 MockStore: Returning ${mockSubmissionsStore.length} submissions`);
+    // Debug logging when enabled
+    if (DEBUG_MODE) {
+      console.log(`📦 MockStore.getAllSubmissions called - found ${mockSubmissionsStore.length} submissions`);
+      console.log(`📦 MockStore IDs:`, mockSubmissionsStore.map(s => s.id));
+    }
     return mockSubmissionsStore.sort((a, b) => 
       new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime()
     );
   },
 
   getSubmissionById: (id: number): MockSubmission | undefined => {
-    return mockSubmissionsStore.find(s => s.id === id);
+    if (DEBUG_MODE) {
+      console.log(`📦 MockStore.getSubmissionById called with ID: ${id} (type: ${typeof id})`);
+      console.log(`📦 MockStore searching in ${mockSubmissionsStore.length} submissions`);
+    }
+    const found = mockSubmissionsStore.find(s => s.id === id);
+    if (DEBUG_MODE) {
+      console.log(`📦 MockStore.getSubmissionById result:`, found ? `FOUND - ${found.student_name}` : 'NOT FOUND');
+    }
+    return found;
   },
 
   addSubmission: (submission: Omit<MockSubmission, 'id'>): number => {
-    const newId = Math.max(...mockSubmissionsStore.map(s => s.id), 0) + 1;
+    const newId = nextSubmissionId++;
     const newSubmission: MockSubmission = {
       ...submission,
-      id: newId
+      id: newId,
+      submitted_at: new Date().toISOString() // Always use current timestamp for new submissions
     };
+    
     mockSubmissionsStore.push(newSubmission);
-    console.log(`📝 MockStore: Added new submission ${newId} for ${submission.student_name}`);
-    console.log(`📊 MockStore: Total submissions now: ${mockSubmissionsStore.length}`);
+    saveToFile(); // Persist to file
+    
+    if (DEBUG_MODE) {
+      console.log(`📦 Mock submission added: ID ${newId} for ${submission.student_name}`);
+      console.log(`✅ Total submissions: ${mockSubmissionsStore.length}`);
+    }
+    
     return newId;
   },
 
@@ -168,10 +119,16 @@ export const mockStore = {
         ...mockSubmissionsStore[index],
         ...updates
       };
-      console.log(`✏️ MockStore: Updated submission ${id}`);
+      saveToFile(); // Persist to file
+      
+      if (DEBUG_MODE) {
+        console.log(`✏️ Review saved for submission ${id}: Grade ${updates.grade}, Feedback: ${updates.feedback}`);
+      }
       return true;
     }
-    console.log(`❌ MockStore: Submission ${id} not found for update`);
+    if (DEBUG_MODE) {
+      console.log(`❌ MockStore: Submission ${id} not found for update`);
+    }
     return false;
   },
 
@@ -187,6 +144,16 @@ export const mockStore = {
       type: "html", 
       difficulty: "Beginner" 
     };
+  },
+
+  clearAllSubmissions: (): boolean => {
+    const previousCount = mockSubmissionsStore.length;
+    mockSubmissionsStore.length = 0; // Clear the array
+    nextSubmissionId = 1; // Reset ID counter to start fresh
+    saveToFile(); // Persist to file
+    
+    console.log(`🗑️ Cleared ${previousCount} submissions, ID counter reset to 1`);
+    return true;
   }
 };
 

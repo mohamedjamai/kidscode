@@ -1,0 +1,56 @@
+{
+  "submissions": [
+    {
+      "student_name": "Test Student",
+      "lesson_id": 2,
+      "lesson_title": "CSS Styling Basics",
+      "lesson_type": "css",
+      "difficulty_name": "Beginner",
+      "html_code": "<!DOCTYPE html>\n<html>\n<head>\n    <title>Styling Fun</title>\n    <style>\n        /* Write your CSS here */\n    </style>\n</head>\n<body>\n    <h1>Style Me!</h1>\n    <p>Make me colorful and beautiful!</p>\n</body>\n</html>",
+      "css_code": "h1 {\n    color: blue;\n    text-align: center;\n}\n\np {\n    color: green;\n    font-size: 18px;\n}",
+      "javascript_code": "",
+      "preview_screenshot": "<!DOCTYPE html>\n<html>\n<head>\n    <title>Styling Fun</title>\n    <style>\n        h1 {\n    color: blue;\n    text-align: center;\n}\n\np {\n    color: green;\n    font-size: 18px;\n}\n    </style>\n</head>\n<body>\n    <h1>Style Me!</h1>\n    <p>Make me colorful and beautiful!</p>\n</body>\n</html>",
+      "submitted_at": "2025-06-05T19:05:14.662Z",
+      "grade": 6,
+      "feedback": "safsfasfasf",
+      "reviewed_by": "Teacher",
+      "reviewed_at": "2025-06-05T19:05:36.386Z",
+      "id": 2
+    },
+    {
+      "student_name": "Test Student",
+      "lesson_id": 1,
+      "lesson_title": "Introduction to HTML",
+      "lesson_type": "html",
+      "difficulty_name": "Beginner",
+      "html_code": "<!DOCTYPE html>\n<html>\n<head>\n    <title>My First Webpage</title>\n</head>\n<body>\n    <h1>Hello World!</h1>\n    <p>Welcome to coding! Try changing this text.</p>\n</body>\n</html>",
+      "css_code": "",
+      "javascript_code": "",
+      "preview_screenshot": "<!DOCTYPE html>\n<html>\n<head>\n    <title>My First Webpage</title>\n</head>\n<body>\n    <h1>Hello World!</h1>\n    <p>Welcome to coding! Try changing this text.</p>\n</body>\n</html>",
+      "submitted_at": "2025-06-05T19:05:06.979Z",
+      "grade": 1,
+      "feedback": "safsfsaf",
+      "reviewed_by": "Teacher",
+      "reviewed_at": "2025-06-05T19:05:24.282Z",
+      "id": 1
+    },
+    {
+      "student_name": "Demo Student",
+      "lesson_id": 1,
+      "lesson_title": "Security Demo Lesson",
+      "lesson_type": "html",
+      "difficulty_name": "Beginner",
+      "html_code": "safsdf",
+      "css_code": "asdsad",
+      "javascript_code": "sadasd",
+      "submitted_at": "2025-06-10T13:25:32.950Z",
+      "grade": null,
+      "feedback": null,
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "id": 3
+    }
+  ],
+  "nextId": 4,
+  "timestamp": "2025-06-10T13:25:32.950Z"
+}

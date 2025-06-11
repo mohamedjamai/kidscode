@@ -13,7 +13,10 @@ const publicRoutes = [
   '/',
   '/lessons',
   '/api/auth',
-  '/api/lessons'
+  '/api/lessons',
+  '/api/csrf', // CSRF endpoint is public
+  '/api/difficulty-levels',
+  '/security-demo'
 ];
 
 export default withAuth(

@@ -78,6 +78,8 @@ export default function LessonsManagePage() {
   const handleSave = async () => {
     if (!selectedLesson) return;
 
+    console.log(`✏️ Attempting to save lesson ${selectedLesson.id}`);
+
     try {
       const response = await fetch(`/api/lessons/${selectedLesson.id}`, {
         method: 'PUT',
@@ -88,6 +90,7 @@ export default function LessonsManagePage() {
       });
 
       const data = await response.json();
+      console.log('✏️ Save response:', data);
 
       if (response.ok && data.success) {
         // Refresh lessons list
@@ -102,13 +105,19 @@ export default function LessonsManagePage() {
         
         setIsEditing(false);
         setError(null);
-        setSuccess('Lesson updated successfully');
+        setSuccess(data.message || 'Lesson updated successfully');
+        
+        // Show demo mode note if applicable
+        if (data.note) {
+          console.log('ℹ️ Demo mode note:', data.note);
+        }
       } else {
+        console.error('❌ Save failed:', data.message);
         setError(data.message || 'Failed to update lesson');
       }
     } catch (err) {
+      console.error('❌ Network error during save:', err);
       setError('Failed to update lesson - network error');
-      console.error('Error updating lesson:', err);
     }
   };
 
@@ -117,24 +126,37 @@ export default function LessonsManagePage() {
       return;
     }
 
+    console.log(`🗑️ Attempting to delete lesson ${lessonId}`);
+
     try {
       const response = await fetch(`/api/lessons/${lessonId}`, {
         method: 'DELETE',
       });
 
-      if (response.ok) {
+      const data = await response.json();
+      console.log('🗑️ Delete response:', data);
+
+      if (response.ok && data.success) {
         // Remove from local state
         setLessons(lessons.filter(lesson => lesson.id !== lessonId));
         if (selectedLesson?.id === lessonId) {
           setSelectedLesson(null);
           setIsEditing(false);
         }
+        setError(null);
+        setSuccess(data.message || 'Lesson deleted successfully');
+        
+        // Show demo mode note if applicable
+        if (data.note) {
+          console.log('ℹ️ Demo mode note:', data.note);
+        }
       } else {
-        setError('Failed to delete lesson');
+        console.error('❌ Delete failed:', data.message);
+        setError(data.message || 'Failed to delete lesson');
       }
     } catch (err) {
-      setError('Failed to delete lesson');
-      console.error('Error deleting lesson:', err);
+      console.error('❌ Network error during delete:', err);
+      setError('Failed to delete lesson - network error');
     }
   };
 
@@ -187,6 +209,20 @@ export default function LessonsManagePage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Manage Lessons</h1>
           <p className="text-gray-600">Edit, delete, and preview your lessons</p>
+          
+          {/* Demo Mode Notice */}
+          <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <div className="text-blue-500 text-lg mr-2">ℹ️</div>
+              <div>
+                <h3 className="text-blue-800 font-medium">Demo Mode</h3>
+                <p className="text-blue-700 text-sm">
+                  You're currently in demo mode. Lesson edits and deletions are simulated and will be restored when the server restarts.
+                  In production, changes would be permanently saved to the database.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {error && (

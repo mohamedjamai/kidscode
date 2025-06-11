@@ -8,6 +8,11 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
     role ENUM('student', 'teacher', 'admin') DEFAULT 'student',
+    student_number VARCHAR(50) NULL, -- For school integration (Magister)
+    profile_picture VARCHAR(500) NULL, -- URL/path to profile photo from Magister
+    class_id VARCHAR(100) NULL, -- Link to class/school system
+    school_id VARCHAR(100) NULL, -- Link to school system
+    is_active BOOLEAN DEFAULT true, -- Account status
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
